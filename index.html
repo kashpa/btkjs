@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8"/>
+<title>Offertgenerator</title>
+<style>
+@media print {
+    @page {
+        size: A4;
+        margin: 10mm;
+    }
+    body {
+        font-family: 'Arial', sans-serif;
+        font-size: 10.5pt;
+        line-height: 1.2;
+    }
+    body * {
+        visibility: hidden;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    #quoteContent, #quoteContent * {
+        visibility: visible;
+    }
+    #quoteContent {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    .quote-section {
+        margin: 5mm 0;
+        page-break-inside: avoid !important;
+    }
+    .item-header, .item-meta {
+        display: grid;
+        grid-template-columns: 50px minmax(150px, 1fr) 80px 100px;
+        gap: 5mm;
+        align-items: start;
+    }
+    .item-details, .included-item .item-details {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        white-space: normal !important;
+        max-width: calc(100% - 60px);
+        margin-left: 50px;
+        margin-right: 10mm;
+    }
+    .editable, .item-meta div, .term-item {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        white-space: normal !important;
+    }
+    .term-item {
+        margin: 1.5mm 0;
+        padding-bottom: 2mm;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    .info-text {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    .total-price {
+        margin-top: 4mm;
+        padding-top: 2mm;
+        border-top: 1pt solid #000;
+        text-align: right;
+        padding-right: 2mm;
+        page-break-inside: avoid !important;
+    }
+    h3 {
+        page-break-before: auto !important;
+        page-break-after: avoid !important;
+        margin-top: 6mm;
+        margin-bottom: 3mm !important;
+    }
+    .info-image-container {
+        page-break-inside: avoid !important;
+        margin: 3mm 0;
+    }
+    .info-image-container img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    
+    .unwanted,
+    .remove-icon,
+    .button-container,
+    .description-remove-icon,
+    .image-resize-handle,
+    .info-image-remove {
+        display: none !important;
+    }
+}
+@media print {
+    .quantity,
+    .targetPrice,
+    .price-header,
+    .quantity-header {
+        text-align: right !important;
+        padding-right: 15px !important;
+    }
+    .included-item .item-meta {
+        page-break-inside: avoid;
+    }
+    .total-price {
+        page-break-inside: avoid;
+        padding-right: 15px !important;
+    }
+}
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 20px;
+    max-width: 210mm;
+    margin: auto;
+    font-size: 12pt;
+    background-color: #fff;
+}
+.bold {
+    font-weight: bold;
+}
+.zero-text {
+    color: white !important; /* Makes zero values invisible on white background */
+}
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+.header img {
+    max-width: 200px;
+    margin-right: 20px;
+}
+.quote-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: right;
+    width: 100%;
+}
+.quote-number, .date, .project-number {
+    text-align: right;
+}
+.quote-section {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    align-items: flex-start;
+}
+.quote-section strong {
+    display: block;
+    margin-bottom: 2px;
+}
+.quote-section p {
+    margin-top: 2px;
+}
+.swap-button {
+    font-size: 24px;
+    cursor: pointer;
+    margin: 0 20px;
+    user-select: none;
+}
+.quote-item {
+    border-bottom: 0px solid #ccc;
+    padding: 5px 0;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    cursor: move; /* so we can drag items freely */
+}
+.quote-item:hover .remove-icon {
+    display: block;
+}
+.included-item {
+    padding: 0px 0;
+    cursor: move; /* subitems can also be moved in code, but be mindful of sorting logic */
+    font-weight: normal;
+    width: 100%;
+    box-sizing: border-box;
+}
+.item-header {
+    display: grid;
+    grid-template-columns: 70px minmax(200px, 1fr) 100px 120px;
+    gap: 10px;
+    font-weight: bold;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+    margin-top: 20px;
+    align-items: center;
+}
+.item-header > div {
+    padding: 5px;
+}
+.item-meta {
+    display: grid;
+    grid-template-columns: 70px minmax(200px,1fr) 100px 120px;
+    gap: 10px;
+    align-items: center;
+    position: relative;
+    margin: 5px 0;
+    padding-left: 0;
+}
+.item-meta div {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    justify-content: flex-start;
+}
+.item-number {
+    text-align: left;
+    width: 100%;
+}
+.item-number.bold {
+    font-weight: bold;
+}
+.item-name {
+    text-align: left;
+    padding-right: 10px;
+    word-wrap: break-word;
+}
+.item-name.bold {
+    font-weight: bold;
+}
+.quantity, 
+.quantity-header,
+.targetPrice,
+.price-header,
+.subItemTargetPrice {
+    text-align: right;
+    padding-right: 15px;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    min-width: 80px;
+    white-space: nowrap;
+    position: relative;
+    justify-content: flex-end;
+}
+.input-container {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+}
+.button-container {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    display: none;
+    flex-direction: row;
+    gap: 1px;
+}
+.input-container:hover .button-container {
+    display: flex;
+}
+.button-container button {
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background-color: #f8f8f8;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.button-container button:hover {
+    background-color: #e8e8e8;
+}
+input[type="number"] {
+    width: 60px;
+    padding: 5px;
+    text-align: right;
+    border: none;
+    background-color: transparent;
+    font-size: 12pt;
+    vertical-align: middle;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    display: none;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+.included-item .item-meta {
+    grid-template-columns: 70px minmax(200px, 1fr) 100px 120px;
+    margin-left: 0;
+    width: 100%;
+    background-color: rgba(249, 249, 249, 0.5);
+    border-left: 0;
+}
+.item-details, .included-item .item-details {
+    margin-top: 5px;
+    font-weight: normal;
+    position: relative;
+    grid-column: 2 / 5;
+    padding-left: 5px;
+    padding-right: 130px;
+    max-width: calc(100% - 200px);
+    word-wrap: break-word;
+    margin-left: 80px;
+}
+.editable {
+    border: 1px solid transparent;
+    padding: 5px;
+    width: 100%;
+    word-wrap: break-word;
+}
+.editable:hover {
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
+}
+.editable:focus {
+    outline: 2px solid #007bff;
+    border-radius: 3px;
+    background-color: #fff;
+}
+.terms, .footer {
+    margin-top: 20px;
+}
+.footer {
+    text-align: center;
+}
+#fileInput {
+    margin-bottom: 20px;
+}
+.add-button, .remove-button, .add-optional-button, .add-term-button {
+    cursor: pointer;
+    padding: 5px 10px;
+    background-color: green;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    margin: 5px;
+    font-size: 12pt;
+}
+.remove-button {
+    background-color: red;
+}
+.remove-icon {
+    display: none;
+    color: white;
+    background-color: red;
+    font-size: 16px;
+    cursor: pointer;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    text-align: center;
+    line-height: 18px;
+}
+.pdf-buttons {
+    margin: 20px 0;
+}
+.status-message {
+    margin-top: 10px;
+    font-weight: bold;
+    color: green;
+    font-size: 12pt;
+}
+.total-price {
+    text-align: right;
+    font-weight: bold;
+    margin-top: 20px;
+    font-size: 12pt;
+    padding-right: 15px;
+    margin-right: 0;
+    border-top: 2px solid #000;
+    padding-top: 10px;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    width: 100%;
+}
+.term-item {
+    padding: 2px 0;
+    position: relative;
+}
+.term-item .editable {
+    width: 80%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    margin-right: 10px;
+}
+.term-item:hover .remove-icon {
+    display: block;
+}
+.term-item .item-info {
+    word-wrap: break-word;
+    max-width: 600px;
+}
+.quote-item:hover, .term-item:hover {
+    background-color: #f9f9f9;
+}
+.reference {
+    margin: 20px 0;
+}
+.included-list {
+    margin-left: 0;
+    margin-top: 5px;
+}
+.currency-multiplier {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    text-align: right;
+}
+.currency-multiplier label {
+    font-weight: bold;
+}
+.currency-multiplier input {
+    width: 60px;
+    padding: 5px;
+    font-size: 12pt;
+    text-align: right;
+}
+.description-remove-icon {
+    display: none;
+    color: white;
+    background-color: red;
+    font-size: 16px;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    text-align: center;
+    line-height: 18px;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+}
+.item-details:hover .description-remove-icon,
+.included-item:hover .description-remove-icon {
+    display: block;
+}
+.checkbox-group {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+#optionalItemsList {
+    margin-top: 0;
+    padding-top: 0;
+}
+#termsList {
+    margin-top: 0px;
+    padding-top: 10px;
+}
+h3.name.editable {
+    margin-bottom: 0 !important;
+}
+@media screen and (max-width: 768px) {
+    .item-meta,
+    .item-header {
+        grid-template-columns: 10% 40% 20% 20%;
+    }
+    .included-item .item-meta {
+        width: 100%;
+    }
+}
+div.targetPrice.editable[contenteditable="true"],
+div.subItemTargetPrice.editable[contenteditable="true"] {
+    width: 90% !important;
+}
+div.quantity[data-field="quantity"] {
+    margin-left: 15px !important;
+}
+div.quantity[data-field="subItemQuantity"] {
+    margin-left: 15px !important;
+}
+/* INFOIMAGES */
+.info-images {
+    margin: 20px 0;
+}
+/* We'll place each "block" (image, text, table) inside a container so it's draggable,
+   with a handle that doesn't conflict with text selection. */
+.info-block {
+    position: relative;
+    margin: 10px 0;
+    background-color: #fafafa;
+    border: 1px solid #ddd;
+    padding: 5px;
+}
+.info-block:hover .remove-icon {
+    display: block;
+}
+.info-block .drag-handle {
+    cursor: move;
+    color: #333;
+    font-weight: bold;
+    padding: 2px 6px;
+    background-color: #eee;
+    border-radius: 4px;
+    margin-right: 8px;
+    display: inline-block;
+}
+.info-text-block {
+    min-height: 30px; /* so there's some area to click */
+    padding: 5px;
+}
+.info-image-container {
+    position: relative;
+    width: auto; 
+    margin: 10px 0;
+}
+.info-image-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+.image-resize-handle {
+    width: 20px;
+    height: 20px;
+    background-color: #fff;
+    border: 2px solid #007bff;
+    border-radius: 50%;
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    cursor: se-resize;
+    z-index: 10;
+}
+.info-image-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: red;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 18px;
+    cursor: pointer;
+    z-index: 10;
+}
+.image-upload-container {
+    margin: 10px 0;
+}
+.image-upload-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 5px;
+}
+.image-upload-button:hover {
+    background-color: #45a049;
+}
+#infoImagesList {
+    margin: 20px 0;
+}
+#dropzone {
+    border: 2px dashed #007bff;
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+    color: #007bff;
+    cursor: pointer;
+    margin: 10px 0;
+    display: none;
+}
+#dropzone.hover {
+    background-color: #f1f1f1;
+}
+#infoSectionContainer {
+    position: relative;
+}
+#infoSectionContainer .section-remove-icon {
+    display: none;
+    position: absolute;
+    left:10px;
+    top:5px;
+    background-color:red;
+    width:20px;
+    height:20px;
+    border-radius:10px;
+    text-align:center;
+    line-height:18px;
+    color:white;
+    cursor:pointer;
+    font-size:16px;
+    z-index:100;
+}
+#infoSectionContainer:hover .section-remove-icon {
+    display: block;
+}
+#optionalSectionContainer {
+    position: relative;
+}
+#optionalSectionContainer .section-remove-icon {
+    display: none;
+    position: absolute;
+    left:10px;
+    top:5px;
+    background-color:red;
+    width:20px;
+    height:20px;
+    border-radius:10px;
+    text-align:center;
+    line-height:18px;
+    color:white;
+    cursor:pointer;
+    font-size:16px;
+    z-index:100;
+}
+#optionalSectionContainer:hover .section-remove-icon {
+    display: block;
+}
+.horizontal-line {
+    border: none;
+    border-top: 2px solid black;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    width: 100%;
+}
+/* TABLES in info */
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    margin-top: 10px;
+}
+.info-table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    min-width: 50px;
+    position: relative;
+}
+.info-table td[contenteditable="true"] {
+    cursor: text;
+}
+.info-table td[contenteditable="true"]:hover {
+    background-color: #f9f9f9;
+}
+.info-table td[contenteditable="true"]:focus {
+    outline: 2px solid #007bff;
+    background-color: #fff;
+}
+</style>
+</head>
+<body>
+<div id="quoteContent">
+    <div class="header">
+        <!-- Company logo -->
+        <img alt="Company Logo" src="logo.png"/>
+        <div class="quote-title editable" contenteditable="true" id="quoteTitle">Offert</div>
+    </div>
+    <div class="quote-number">Offert nr: 
+        <span class="editable" contenteditable="true" id="quoteNumber"></span>
+    </div>
+    <div class="date">Datum: 
+        <span class="editable" contenteditable="true" id="quoteDate"></span>
+    </div>
+    <div class="project-number unwanted" id="projectNumberDiv">
+        Projekt Nummer: <span class="editable" contenteditable="true" id="projectNumber"></span>
+    </div>
+    <div class="checkbox-group unwanted">
+        <label><input type="checkbox" id="showProjectNumber" checked /> Visa Projekt Nummer</label>
+        <label><input type="checkbox" id="showDecimals" /> Visa decimaler</label>
+    </div>
+    <div class="currency-multiplier unwanted">
+        <label for="currencyMultiplierInput">Valutakurs:</label>
+        <input type="number" id="currencyMultiplierInput" value="11.8" step="0.01" />
+    </div>
+    <div class="quote-section">
+        <div style="margin-bottom: -5px;">
+            <strong>Till:</strong>
+            <p class="editable" contenteditable="true" id="companyA"></p>
+        </div>
+        <div class="swap-button unwanted" id="swapButton" style="margin-bottom: -5px;">&lt;-&gt;</div>
+        <div style="margin-bottom: -5px;">
+            <strong>Från:</strong>
+            <p class="editable" contenteditable="true" id="companyB"></p>
+        </div>
+    </div>
+    <div class="reference">
+        <strong>Ref:</strong> 
+        <span class="editable" contenteditable="true" id="reference"></span>
+    </div>
+    <div class="item-header">
+        <div class="item-number-header">Nr</div>
+        <div class="name-header editable" contenteditable="true">Artikel / Namn</div>
+        <div class="quantity-header">Antal</div>
+        <div class="price-header">Pris (SEK)</div>
+    </div>
+    <div id="itemsList"></div>
+    <div class="total-price" id="totalPrice">Total: 0 SEK</div>
+    <button class="add-button unwanted" id="addItemButton">+ Lägg till ny artikel</button>
+    <div id="optionalSectionContainer">
+        <h3 class="name editable" contenteditable="true">Alternativ / Ytterligare Artiklar</h3>
+        <span class="section-remove-icon" onclick="removeOptionalSection()">✖</span>
+        <div class="item-header">
+            <div class="item-number-header">Nr</div>
+            <div class="name-header editable" contenteditable="true">Artikel / Namn</div>
+            <div class="quantity-header">Antal</div>
+            <div class="price-header">Pris (SEK)</div>
+        </div>
+        <div id="optionalItemsList"></div>
+        <button class="add-optional-button unwanted" id="addOptionalItemButton">
+            + Lägg till ny artikel
+        </button>
+    </div>
+    <div id="infoSectionContainer">
+        <h3 class="name editable" contenteditable="true">Info / Bilder</h3>
+        <hr class="horizontal-line" />
+        <span class="section-remove-icon" onclick="removeInfoSection()">✖</span>
+        <div id="infoImagesList"></div>
+        <div class="image-upload-container unwanted">
+            <input type="file" id="imageUpload" accept="image/*" multiple style="display:none;" />
+            <button class="image-upload-button" onclick="document.getElementById('imageUpload').click()">
+                Lägg till bild (filuppladdning)
+            </button>
+            <button class="image-upload-button" onclick="addImageFromUrl()">
+                Lägg till bild (URL)
+            </button>
+            <button class="image-upload-button" onclick="showDropzone()">
+                Lägg till bild (Dra & Släpp)
+            </button>
+            <button class="image-upload-button add-info-text-button" onclick="addInfoText()">
+                Lägg till text
+            </button>
+            <button class="image-upload-button add-table-button" onclick="addTable()">
+                Lägg till tabell
+            </button>
+            <div id="dropzone">Dra och släpp bilder här</div>
+        </div>
+    </div>
+    <h3 class="name editable" contenteditable="true">Villkor</h3>
+    <hr class="horizontal-line" />
+    <div id="termsList"></div>
+    <button class="add-term-button unwanted" id="addTermButton">+ Lägg till villkor</button>
+</div>
+<div class="footer unwanted">
+    <input type="file" id="fileInput" accept=".json" />
+    <div class="pdf-buttons">
+        <button class="unwanted" id="makeTransparent">Make Unwanted Transparent</button>
+        <button class="unwanted" id="setDisplayNone">Hide Unwanted Elements</button>
+        <button class="unwanted" id="removeElements">Remove Unwanted Elements</button>
+        <button class="unwanted" id="resetUnwanted">Reset Unwanted</button>
+        <br/>
+        <div class="status-message" id="statusMessage"></div>
+    </div>
+    <button class="unwanted" id="saveJson">Spara JSON</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+<script>
+let jsonData = null;
+let originalStyles = {};
+let originalElements = {};
+(function initData(){
+    const localData = localStorage.getItem('quoteData');
+    if(!localData){
+        jsonData={
+            quote:{currencyMultiplicator:1},
+            companyA:{},
+            companyB:{},
+            items:[],
+            optionalItems:[],
+            terms:[],
+            infoImages:[]
+        };
+    } else {
+        jsonData=JSON.parse(localData);
+        if(!jsonData.quote)jsonData.quote={currencyMultiplicator:1};
+        if(!jsonData.companyA)jsonData.companyA={};
+        if(!jsonData.companyB)jsonData.companyB={};
+        if(!Array.isArray(jsonData.items))jsonData.items=[];
+        if(!Array.isArray(jsonData.optionalItems))jsonData.optionalItems=[];
+        if(!Array.isArray(jsonData.terms))jsonData.terms=[];
+        if(!Array.isArray(jsonData.infoImages))jsonData.infoImages=[];
+    }
+})();
+// Main load
+function loadQuoteData(data){
+    jsonData=JSON.parse(JSON.stringify(data));
+    if(!jsonData.quote)jsonData.quote={currencyMultiplicator:1};
+    if(!Array.isArray(jsonData.terms))jsonData.terms=[];
+    const q=jsonData.quote;
+    if(!q.quoteNumber) q.quoteNumber=Math.floor(Math.random()*100000).toString();
+    document.getElementById('quoteNumber').textContent=q.quoteNumber||'';
+    document.getElementById('quoteDate').textContent=q.date||new Date().toLocaleDateString('sv-SE');
+    document.getElementById('quoteTitle').textContent=q.title||'Offert';
+    document.getElementById('projectNumber').textContent=q.projectNumber||'';
+    document.getElementById('companyA').innerHTML=`
+        ${(jsonData.companyA.name||'')}<br>
+        ${(jsonData.companyA.address||'')}<br>
+        ${(jsonData.companyA.postalCode||'')}<br>
+        ${(jsonData.companyA.attention||'')}
+    `;
+    document.getElementById('companyB').innerHTML=`
+        ${(jsonData.companyB.name||'')}<br>
+        ${(jsonData.companyB.address||'')}<br>
+        ${(jsonData.companyB.postalCode||'')}
+    `;
+    document.getElementById('reference').textContent=q.reference||'';
+    document.getElementById('currencyMultiplierInput').value=q.currencyMultiplicator||1;
+    document.getElementById('showDecimals').checked=false;
+    updatePrices();
+    loadItems(jsonData.items,'itemsList');
+    loadItems(jsonData.optionalItems,'optionalItemsList');
+    loadTerms(jsonData.terms);
+    loadInfoImages();
+    makeEditable();
+    calculateTotalPrice();
+    initializeDragAndDrop();
+}
+function reRenderLists(){
+    updatePrices();
+    loadItems(jsonData.items,'itemsList');
+    loadItems(jsonData.optionalItems,'optionalItemsList');
+    loadTerms(jsonData.terms);
+    loadInfoImages();
+    calculateTotalPrice();
+    makeEditable();
+    initializeDragAndDrop();
+}
+//---------------------------------
+// Items
+//---------------------------------
+function loadItems(items, containerId){
+    const container=document.getElementById(containerId);
+    container.innerHTML='';
+    items.forEach((item, idx)=>{
+        const iNum=item.itemNumber||(`${idx+1}`);
+        const q=item.quantity||0;
+        const p=item.targetPrice||0;
+        const qClass=(q===0)?'zero-text':'';
+        const pClass=(p===0)?'zero-text':'';
+        const quoteDiv=document.createElement('div');
+        quoteDiv.className='quote-item';
+        quoteDiv.dataset.index=idx;
+        const meta=document.createElement('div');
+        meta.className='item-meta';
+        meta.innerHTML=`
+            <div class="item-number editable"
+                 contenteditable="true"
+                 data-item="${containerId}"
+                 data-index="${idx}"
+                 data-field="itemNumber"
+                 >
+                ${iNum}
+            </div>
+            <div class="item-name bold editable"
+                 contenteditable="true"
+                 data-item="${containerId}"
+                 data-index="${idx}"
+                 data-field="name"
+                 >
+                 ${item.name||''}
+            </div>
+            <div class="quantity"
+                 data-item="${containerId}"
+                 data-index="${idx}"
+                 data-field="quantity"
+                 >
+                 <div class="input-container">
+                    <input type="number" min="0" step="1"
+                           value="${q}"
+                           class="${qClass}"
+                    />
+                    <div class="button-container unwanted">
+                        <button type="button" class="increment-btn">+</button>
+                        <button type="button" class="decrement-btn">-</button>
+                    </div>
+                 </div>
+            </div>
+            <div class="targetPrice editable"
+                 contenteditable="true"
+                 data-item="${containerId}"
+                 data-index="${idx}"
+                 data-field="targetPrice"
+                 style="text-align:right;"
+                 >
+                 <span class="${pClass}"
+                       style="display:inline-block;width:100%;text-align:right;">
+                       ${p===0?'0':formatPrice(p)}
+                 </span>
+            </div>
+            <span class="remove-icon" onclick="removeItem('${containerId}',${idx})">✖</span>
+        `;
+        const details=document.createElement('div');
+        details.className='item-details editable';
+        details.contentEditable=true;
+        details.dataset.item=containerId;
+        details.dataset.index=idx;
+        details.dataset.field='itemDescription';
+        details.innerHTML=item.itemDescription?item.itemDescription.replace(/\n/g,'<br>'):'';
+        const descRemoveIcon=document.createElement('span');
+        descRemoveIcon.className='description-remove-icon';
+        descRemoveIcon.textContent='✖';
+        descRemoveIcon.onclick=()=>removeDescription(details);
+        details.appendChild(descRemoveIcon);
+        quoteDiv.appendChild(meta);
+        if(item.itemDescription){
+            quoteDiv.appendChild(details);
+        }
+        // subItems/optionalSubItems
+        let subArray=item.subItems||(item.optionalSubItems||[]);
+        subArray.forEach((si, sIdx)=>{
+            const siNum=si.subItemNumber||(`${iNum}.${sIdx+1}`);
+            const sq=si.subItemQuantity||0;
+            const sp=si.subItemTargetPrice||0;
+            const sqClass=(sq===0)?'zero-text':'';
+            const spClass=(sp===0)?'zero-text':'';
+            const included=document.createElement('div');
+            included.className='included-item';
+            included.dataset.index=sIdx;
+            const subMeta=document.createElement('div');
+            subMeta.className='item-meta';
+            subMeta.innerHTML=`
+                <div class="item-number editable"
+                     contenteditable="true"
+                     data-item="${containerId}"
+                     data-index="${idx}"
+                     data-included-index="${sIdx}"
+                     data-field="subItemNumber"
+                     >
+                    ${siNum}
+                </div>
+                <div class="item-name editable"
+                     contenteditable="true"
+                     data-item="${containerId}"
+                     data-index="${idx}"
+                     data-included-index="${sIdx}"
+                     data-field="subItemName"
+                     >
+                    ${si.subItemName||''}
+                </div>
+                <div class="quantity"
+                     data-item="${containerId}"
+                     data-index="${idx}"
+                     data-included-index="${sIdx}"
+                     data-field="subItemQuantity"
+                     >
+                     <div class="input-container">
+                        <input type="number" min="0" step="1"
+                               value="${sq}"
+                               class="${sqClass}"
+                        />
+                        <div class="button-container unwanted">
+                            <button type="button" class="increment-btn">+</button>
+                            <button type="button" class="decrement-btn">-</button>
+                        </div>
+                     </div>
+                </div>
+                <div class="subItemTargetPrice editable"
+                     contenteditable="true"
+                     data-item="${containerId}"
+                     data-index="${idx}"
+                     data-included-index="${sIdx}"
+                     data-field="subItemTargetPrice"
+                     style="text-align:right;"
+                     >
+                     <span class="${spClass}"
+                           style="display:inline-block;width:100%;text-align:right;">
+                           ${sp===0?'0':formatPrice(sp)}
+                     </span>
+                </div>
+                <span class="remove-icon" onclick="removeSubItem('${containerId}',${idx},${sIdx})">✖</span>
+            `;
+            const subDetails=document.createElement('div');
+            subDetails.className='item-details editable';
+            subDetails.contentEditable=true;
+            subDetails.dataset.item=containerId;
+            subDetails.dataset.index=idx;
+            subDetails.dataset.includedIndex=sIdx;
+            subDetails.dataset.field='subItemDescription';
+            subDetails.innerHTML=si.subItemDescription?si.subItemDescription.replace(/\n/g,'<br>'):'';
+            const subDescIcon=document.createElement('span');
+            subDescIcon.className='description-remove-icon';
+            subDescIcon.textContent='✖';
+            subDescIcon.onclick=()=>removeDescription(subDetails);
+            subDetails.appendChild(subDescIcon);
+            included.appendChild(subMeta);
+            if(si.subItemDescription){
+                included.appendChild(subDetails);
+            }
+            quoteDiv.appendChild(included);
+        });
+        container.appendChild(quoteDiv);
+    });
+}
+function removeItem(containerId,index){
+    if(containerId==='itemsList'){
+        jsonData.items.splice(index,1);
+    } else {
+        jsonData.optionalItems.splice(index,1);
+    }
+    saveToLocal();
+    postSortRenumber();
+    reRenderLists();
+}
+function removeSubItem(containerId, idx, sIdx){
+    const arr=(containerId==='itemsList')?jsonData.items:jsonData.optionalItems;
+    let item=arr[idx];
+    let subArr=item.subItems||item.optionalSubItems||[];
+    subArr.splice(sIdx,1);
+    saveToLocal();
+    postSortRenumber();
+    reRenderLists();
+}
+function removeDescription(el){
+    const item=el.dataset.item;
+    const idx=el.dataset.index;
+    const f=el.dataset.field;
+    const sIdx=el.dataset.includedIndex;
+    const arr=(item==='itemsList')?jsonData.items:jsonData.optionalItems;
+    if(!arr[idx])return;
+    if(f==='itemDescription'){
+        arr[idx].itemDescription='';
+    } else if(f==='subItemDescription'){
+        let subArr=arr[idx].subItems||arr[idx].optionalSubItems||[];
+        if(subArr[sIdx]){
+            subArr[sIdx].subItemDescription='';
+        }
+    }
+    saveToLocal();
+    reRenderLists();
+}
+//---------------------------------
+// Terms
+//---------------------------------
+function loadTerms(terms){
+    const list=document.getElementById('termsList');
+    list.innerHTML='';
+    terms.forEach((t,i)=>{
+        const div=document.createElement('div');
+        div.className='term-item';
+        div.innerHTML=`
+            <div class="editable" contenteditable="true"
+                 data-field="term"
+                 data-index="${i}"
+                 >${t}</div>
+            <span class="remove-icon" onclick="removeTerm(${i})">✖</span>
+        `;
+        list.appendChild(div);
+    });
+}
+function removeTerm(i){
+    jsonData.terms.splice(i,1);
+    saveToLocal();
+    reRenderLists();
+}
+//---------------------------------
+// Info Images
+//---------------------------------
+function loadInfoImages(){
+    const c=document.getElementById('infoImagesList');
+    c.innerHTML='';
+    (jsonData.infoImages||[]).forEach((obj, idx)=>{
+        // Wrap in a .info-block so we can drag using a handle
+        const block=document.createElement('div');
+        block.className='info-block';
+        block.dataset.index=idx;
+        // Add a handle
+        const dragHandle=document.createElement('span');
+        dragHandle.className='drag-handle';
+        dragHandle.textContent='≡'; // or use any icon
+        block.appendChild(dragHandle);
+        // Remove icon always on the block
+        const removeIcon=document.createElement('span');
+        removeIcon.className='remove-icon';
+        removeIcon.textContent='✖';
+        removeIcon.style.right='10px';
+        removeIcon.style.top='5px';
+        removeIcon.onclick=()=>removeInfoItem(idx);
+        block.appendChild(removeIcon);
+        if(obj.type==='text'){
+            // text block
+            const textDiv=document.createElement('div');
+            textDiv.className='info-text-block editable';
+            textDiv.contentEditable=true;
+            textDiv.dataset.index=idx;
+            textDiv.innerHTML=obj.content||'';
+            // For changing text:
+            textDiv.addEventListener('input',function(){
+                jsonData.infoImages[idx].content=this.innerHTML;
+                saveToLocal();
+            });
+            block.appendChild(textDiv);
+        } else if(obj.type==='table'){
+            // table block
+            const table=document.createElement('table');
+            table.className='info-table';
+            for(let r=0; r<obj.rows;r++){
+                const row=document.createElement('tr');
+                for(let cc=0; cc<obj.cols; cc++){
+                    const cell=document.createElement('td');
+                    cell.contentEditable=true;
+                    cell.innerHTML=obj.data[r][cc]||'';
+                    cell.addEventListener('input',function(){
+                        obj.data[r][cc]=this.innerHTML;
+                        saveToLocal();
+                    });
+                    row.appendChild(cell);
+                }
+                table.appendChild(row);
+            }
+            block.appendChild(table);
+        } else {
+            // image
+            const imgContainer=document.createElement('div');
+            imgContainer.className='info-image-container';
+            const img=document.createElement('img');
+            img.src=obj.src;
+            img.style.width=(obj.width||400)+'px';
+            const resizeHandle=document.createElement('div');
+            resizeHandle.className='image-resize-handle unwanted';
+            const removeBtn=document.createElement('div');
+            removeBtn.className='info-image-remove unwanted';
+            removeBtn.textContent='✖';
+            removeBtn.onclick=()=>removeInfoItem(idx);
+            imgContainer.appendChild(img);
+            imgContainer.appendChild(resizeHandle);
+            imgContainer.appendChild(removeBtn);
+            block.appendChild(imgContainer);
+            initializeResize(resizeHandle,img,idx);
+        }
+        c.appendChild(block);
+    });
+}
+function removeInfoItem(idx){
+    jsonData.infoImages.splice(idx,1);
+    saveToLocal();
+    reRenderLists();
+}
+function addInfoText(){
+    jsonData.infoImages.push({
+        type:'text',
+        content:'Klicka för att redigera text'
+    });
+    saveToLocal();
+    reRenderLists();
+}
+function addTable(){
+    const rows=prompt('Antal rader','3');
+    const cols=prompt('Antal kolumner','3');
+    if(rows && cols){
+        const r=parseInt(rows)||2;
+        const c=parseInt(cols)||2;
+        const data=[];
+        for(let i=0;i<r;i++){
+            const row=new Array(c).fill('');
+            data.push(row);
+        }
+        jsonData.infoImages.push({
+            type:'table',
+            rows:r,
+            cols:c,
+            data:data
+        });
+        saveToLocal();
+        reRenderLists();
+    }
+}
+function addImageFromUrl(){
+    const url=prompt('Ange bildens URL:');
+    if(url){
+        jsonData.infoImages.push({
+            type:'image',
+            src:url,
+            width:400,
+            description:''
+        });
+        saveToLocal();
+        reRenderLists();
+    }
+}
+document.getElementById('imageUpload').addEventListener('change',function(e){
+    const files=e.target.files;
+    for(let f of files){
+        const reader=new FileReader();
+        reader.onload=(ev)=>{
+            jsonData.infoImages.push({
+                type:'image',
+                src:ev.target.result,
+                width:400,
+                description:''
+            });
+            saveToLocal();
+            reRenderLists();
+        };
+        reader.readAsDataURL(f);
+    }
+});
+function showDropzone(){
+    document.getElementById('dropzone').style.display='block';
+}
+const dropzone=document.getElementById('dropzone');
+dropzone.addEventListener('dragover',e=>{
+    e.preventDefault();
+    dropzone.classList.add('hover');
+});
+dropzone.addEventListener('dragleave',e=>{
+    dropzone.classList.remove('hover');
+});
+dropzone.addEventListener('drop',e=>{
+    e.preventDefault();
+    dropzone.classList.remove('hover');
+    const files=e.dataTransfer.files;
+    for(let f of files){
+        const reader=new FileReader();
+        reader.onload=(ev)=>{
+            jsonData.infoImages.push({
+                type:'image',
+                src:ev.target.result,
+                width:400,
+                description:''
+            });
+            saveToLocal();
+            reRenderLists();
+        };
+        reader.readAsDataURL(f);
+    }
+});
+function initializeResize(handle,img,idx){
+    let startWidth, startX;
+    const start=(ev)=>{
+        startWidth=img.offsetWidth;
+        startX=ev.clientX;
+        document.addEventListener('mousemove',onMove);
+        document.addEventListener('mouseup',onUp);
+    };
+    const onMove=(ev)=>{
+        const w=startWidth+(ev.clientX-startX);
+        img.style.width=w+'px';
+        jsonData.infoImages[idx].width=w;
+        saveToLocal();
+    };
+    const onUp=()=>{
+        document.removeEventListener('mousemove',onMove);
+        document.removeEventListener('mouseup',onUp);
+    };
+    handle.addEventListener('mousedown',start);
+}
+function removeInfoSection(){
+    jsonData.infoImages=[];
+    saveToLocal();
+    let sec=document.getElementById('infoSectionContainer');
+    if(sec)sec.remove();
+}
+function removeOptionalSection(){
+    jsonData.optionalItems=[];
+    saveToLocal();
+    let sec=document.getElementById('optionalSectionContainer');
+    if(sec)sec.remove();
+}
+//---------------------------------
+// Price + currency
+//---------------------------------
+function updatePrices(){
+    const mul=jsonData.quote.currencyMultiplicator||1;
+    function handleArr(arr){
+        arr.forEach(it=>{
+            const q=it.quantity||0;
+            if(it.originalPrice){
+                it.targetPrice=it.originalPrice*mul*q;
+            }
+            let si=it.subItems||it.optionalSubItems||[];
+            si.forEach(s=>{
+                const sq=s.subItemQuantity||0;
+                if(s.subItemOriginalPrice){
+                    s.subItemTargetPrice=s.subItemOriginalPrice*mul*sq;
+                }
+            });
+        });
+    }
+    handleArr(jsonData.items);
+    handleArr(jsonData.optionalItems);
+}
+function calculateTotalPrice(){
+    let total=0;
+    function sumArr(arr){
+        arr.forEach(it=>{
+            total+=(it.targetPrice||0);
+            let si=it.subItems||it.optionalSubItems||[];
+            si.forEach(s=>{
+                total+=(s.subItemTargetPrice||0);
+            });
+        });
+    }
+    sumArr(jsonData.items);
+    const dec=document.getElementById('showDecimals').checked;
+    const txt=dec?total.toFixed(2):Math.round(total).toString();
+    document.getElementById('totalPrice').textContent='Total: '+formatNumber(txt)+' SEK';
+}
+function formatPrice(p){
+    if(p==null)return'';
+    const dec=document.getElementById('showDecimals').checked;
+    const n=dec?p.toFixed(2):Math.round(p).toString();
+    return formatNumber(n);
+}
+function formatNumber(n){
+    return n.replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+}
+//---------------------------------
+// Event listeners
+//---------------------------------
+document.addEventListener('click',e=>{
+    if(e.target.classList.contains('increment-btn')){
+        const par=e.target.closest('.quantity');
+        if(!par)return;
+        const inp=par.querySelector('input[type="number"]');
+        let val=parseInt(inp.value)||0;
+        val++;
+        inp.value=val;
+        handleQuantityChange(inp);
+    } else if(e.target.classList.contains('decrement-btn')){
+        const par=e.target.closest('.quantity');
+        if(!par)return;
+        const inp=par.querySelector('input[type="number"]');
+        let val=parseInt(inp.value)||0;
+        val=Math.max(0,val-1);
+        inp.value=val;
+        handleQuantityChange(inp);
+    }
+});
+function handleQuantityChange(inp){
+    const par=inp.closest('.quantity');
+    const itemId=par.dataset.item;
+    const idx=par.dataset.index;
+    const sIdx=par.dataset.includedIndex;
+    const arr=(itemId==='itemsList')?jsonData.items:jsonData.optionalItems;
+    const val=parseInt(inp.value)||0;
+    if(sIdx!==undefined){
+        let sub=arr[idx].subItems||arr[idx].optionalSubItems||[];
+        if(sub[sIdx]){
+            sub[sIdx].subItemQuantity=val;
+        }
+    } else {
+        if(arr[idx]) arr[idx].quantity=val;
+    }
+    saveToLocal();
+    reRenderLists();
+}
+document.getElementById('swapButton').addEventListener('click',()=>{
+    const tmp={...jsonData.companyA};
+    jsonData.companyA={...jsonData.companyB};
+    jsonData.companyB=tmp;
+    saveToLocal();
+    reRenderLists();
+});
+document.getElementById('showProjectNumber').addEventListener('change',function(){
+    const div=document.getElementById('projectNumberDiv');
+    div.style.display=this.checked?'':'none';
+});
+document.getElementById('currencyMultiplierInput').addEventListener('input',function(){
+    const val=parseFloat(this.value);
+    if(!isNaN(val)){
+        jsonData.quote.currencyMultiplicator=val;
+        saveToLocal();
+        reRenderLists();
+    }
+});
+document.getElementById('showDecimals').addEventListener('change',()=>{
+    reRenderLists();
+});
+document.getElementById('addItemButton').addEventListener('click',()=>{
+    const newItem={
+        itemNumber:'',
+        name:'Artikel Namn',
+        itemDescription:'Beskrivning',
+        quantity:1,
+        originalPrice:0,
+        targetPrice:0,
+        subItems:[]
+    };
+    jsonData.items.push(newItem);
+    saveToLocal();
+    postSortRenumber();
+    reRenderLists();
+});
+document.getElementById('addOptionalItemButton').addEventListener('click',()=>{
+    const newItem={
+        itemNumber:'',
+        name:'Alternativ Artikel Namn',
+        itemDescription:'Beskrivning',
+        quantity:1,
+        originalPrice:0,
+        targetPrice:0,
+        optionalSubItems:[]
+    };
+    jsonData.optionalItems.push(newItem);
+    saveToLocal();
+    postSortRenumber();
+    reRenderLists();
+});
+document.getElementById('addTermButton').addEventListener('click',()=>{
+    jsonData.terms.push('Nytt villkor: Klicka för att redigera');
+    saveToLocal();
+    reRenderLists();
+});
+document.getElementById('fileInput').addEventListener('change',function(ev){
+    const f=ev.target.files[0];
+    if(f && (f.type==='application/json' || f.name.endsWith('.json'))){
+        const r=new FileReader();
+        r.onload=(e)=>{
+            try{
+                const d=JSON.parse(e.target.result);
+                loadQuoteData(d);
+                saveToLocal();
+            } catch(e){
+                alert('JSON-formatet verkar vara felaktigt.');
+            }
+        };
+        r.readAsText(f);
+    } else {
+        alert('Vänligen ladda upp en giltig JSON-fil.');
+    }
+});
+//---------------------------------
+// SORTABLE DRAG + best-effort renumber
+//---------------------------------
+let itemsSortable, optionalItemsSortable, termsSortable, infoSortable;
+function initializeDragAndDrop(){
+    if(itemsSortable)itemsSortable.destroy();
+    if(optionalItemsSortable)optionalItemsSortable.destroy();
+    if(termsSortable)termsSortable.destroy();
+    if(infoSortable)infoSortable.destroy();
+    itemsSortable=Sortable.create(document.getElementById('itemsList'),{
+        group:'sharedItems',animation:150,
+        onEnd(evt){
+            if(evt.to===evt.from){
+                const moved=jsonData.items.splice(evt.oldIndex,1)[0];
+                jsonData.items.splice(evt.newIndex,0,moved);
+            }
+            saveToLocal();
+            postSortRenumber();
+            reRenderLists();
+        },
+        onAdd(evt){
+            if(evt.from.id==='optionalItemsList'){
+                const moved=jsonData.optionalItems.splice(evt.oldIndex,1)[0];
+                jsonData.items.splice(evt.newIndex,0,moved);
+                saveToLocal();
+                postSortRenumber();
+                reRenderLists();
+            }
+        }
+    });
+    optionalItemsSortable=Sortable.create(document.getElementById('optionalItemsList'),{
+        group:'sharedItems',animation:150,
+        onEnd(evt){
+            if(evt.to===evt.from){
+                const moved=jsonData.optionalItems.splice(evt.oldIndex,1)[0];
+                jsonData.optionalItems.splice(evt.newIndex,0,moved);
+            }
+            saveToLocal();
+            postSortRenumber();
+            reRenderLists();
+        },
+        onAdd(evt){
+            if(evt.from.id==='itemsList'){
+                const moved=jsonData.items.splice(evt.oldIndex,1)[0];
+                jsonData.optionalItems.splice(evt.newIndex,0,moved);
+                saveToLocal();
+                postSortRenumber();
+                reRenderLists();
+            }
+        }
+    });
+    termsSortable=Sortable.create(document.getElementById('termsList'),{
+        animation:150,
+        handle:'.term-item',
+        onEnd(evt){
+            const moved=jsonData.terms.splice(evt.oldIndex,1)[0];
+            jsonData.terms.splice(evt.newIndex,0,moved);
+            saveToLocal();
+            reRenderLists();
+        }
+    });
+    // Info blocks
+    infoSortable=Sortable.create(document.getElementById('infoImagesList'),{
+        animation:150,
+        handle:'.drag-handle',
+        onEnd(evt){
+            const moved=jsonData.infoImages.splice(evt.oldIndex,1)[0];
+            jsonData.infoImages.splice(evt.newIndex,0,moved);
+            saveToLocal();
+            reRenderLists();
+        }
+    });
+}
+//---------------------------------
+// Numbering logic
+//---------------------------------
+function postSortRenumber(){
+    // For top-level items
+    renumberArray(jsonData.items);
+    renumberArray(jsonData.optionalItems);
+}
+/**
+ * We do a best-effort approach:
+ * 1) parse each itemNumber => prefix segments, last segment
+ * 2) If the item’s prefix differs from the prefix of the previous item in the array,
+ *    we adopt the previous item’s prefix. (We do that if we detect it was dragged.)
+ * 3) Then for all items that share that prefix in contiguous order, we relabel last segments 1..n
+ * 4) We do the same for subItems, forcing them to adopt their parent’s prefix + 1 additional segment.
+ */
+function renumberArray(arr){
+    if(!arr||!arr.length)return;
+    let oldPrefix = null;
+    for(let i=0;i<arr.length;i++){
+        let item=arr[i];
+        let {prefix,last} = parseNumber(item.itemNumber||(`${i+1}`));
+        // If it's not the same as oldPrefix, we adopt oldPrefix if that is set
+        // So if user placed "2.6" among "3.x", we adopt "3." prefix
+        // if oldPrefix is null for the first item, we just keep prefix
+        if(i>0 && prefix.join('.')!==oldPrefix.join('.')){
+            // adopt oldPrefix
+            prefix=[...oldPrefix];
+        }
+        // Now we record itemNumber with prefix and a placeholder last (we fix after grouping)
+        item.__parsedPrefix=prefix; // store temp
+        item.__parsedLast=last;
+        oldPrefix=[...prefix]; // for next iteration
+    }
+    // Now we unify consecutive last segments among contiguous items with the same prefix
+    let start=0;
+    for(let i=1;i<=arr.length;i++){
+        if(i===arr.length ||
+           !samePrefix(arr[i-1].__parsedPrefix, arr[i]?.__parsedPrefix)
+        ){
+            // end group at i-1
+            unifyLastSegments(arr, start, i-1);
+            start=i;
+        }
+    }
+    // Now handle subitems
+    arr.forEach(it=>{
+        let sub=it.subItems||it.optionalSubItems;
+        if(sub&&sub.length){
+            renumberSubItems(it,sub);
+        }
+        // store final itemNumber back
+        it.itemNumber=it.__parsedPrefix.join('.')+'.'+it.__parsedLast;
+        delete it.__parsedPrefix; delete it.__parsedLast;
+    });
+}
+function renumberSubItems(parent, subArray){
+    // The subitems adopt parent's prefix plus one segment
+    // e.g if parent is "3.2", subitems => "3.2.1", "3.2.2", ...
+    let {prefix:pp, last:pl}=parseNumber(parent.itemNumber);
+    // We'll call that parentPrefix = [ ...pp, pl ]
+    const parentPrefix=[...pp, pl]; // e.g [3,2]
+    // Then for sub items, we see if user typed something, but we forcibly unify them
+    for(let i=0;i<subArray.length;i++){
+        let subIt=subArray[i];
+        let {prefix,last}=parseNumber(subIt.subItemNumber||'');
+        // ignore prefix from user, adopt parent's prefix
+        prefix=[...parentPrefix];
+        subIt.__parsedPrefix=prefix;
+        subIt.__parsedLast= last; // placeholder
+    }
+    // unify them from i=0..end
+    unifyLastSegments(subArray,0,subArray.length-1,true);
+    // store final
+    subArray.forEach(s=>{
+        s.subItemNumber=s.__parsedPrefix.join('.')+'.'+s.__parsedLast;
+        delete s.__parsedPrefix; delete s.__parsedLast;
+    });
+}
+// unify last segment from arr[start..end], in array order
+function unifyLastSegments(arr, start, end, isSub=false){
+    // The last segments get assigned consecutive values from 1..(end-start+1)
+    // in the order they appear
+    let c=1;
+    for(let i=start;i<=end;i++){
+        arr[i].__parsedLast=c++;
+    }
+}
+function samePrefix(a,b){
+    if(!a||!b)return false;
+    if(a.length!==b.length)return false;
+    for(let i=0;i<a.length;i++){
+        if(a[i]!==b[i])return false;
+    }
+    return true;
+}
+// parse "3.2.1" => prefix=[3,2], last=1
+function parseNumber(str){
+    if(!str)return {prefix:[], last:1};
+    let segs=str.split('.');
+    if(!segs.length)return {prefix:[], last:1};
+    let nums=segs.map(s=>{
+        let x=parseInt(s,10);
+        return isNaN(x)?1:x;
+    });
+    let prefix=nums.slice(0,nums.length-1);
+    if(!prefix.length)prefix=[nums[0]]; // fallback if single seg
+    let last=nums[nums.length-1]||1;
+    return {prefix,last};
+}
+//---------------------------------
+// Editable
+//---------------------------------
+function makeEditable(){
+    document.querySelectorAll('.editable').forEach(el=>{
+        el.removeEventListener('input',onEditableInput);
+        el.addEventListener('input',onEditableInput);
+    });
+}
+function onEditableInput(e){
+    const f=this.dataset.field;
+    const val=this.innerHTML.trim();
+    if(!f){
+        // top-level
+        if(this.id==='companyA'){
+            const lines=this.innerText.split('\n');
+            jsonData.companyA.name=lines[0]||'';
+            jsonData.companyA.address=lines[1]||'';
+            jsonData.companyA.postalCode=lines[2]||'';
+            jsonData.companyA.attention=lines[3]||'';
+        } else if(this.id==='companyB'){
+            const lines=this.innerText.split('\n');
+            jsonData.companyB.name=lines[0]||'';
+            jsonData.companyB.address=lines[1]||'';
+            jsonData.companyB.postalCode=lines[2]||'';
+        } else if(this.id==='reference'){
+            jsonData.quote.reference=this.textContent;
+        } else if(this.id==='quoteTitle'){
+            jsonData.quote.title=this.textContent;
+        } else if(this.id==='quoteNumber'){
+            jsonData.quote.quoteNumber=this.textContent;
+        } else if(this.id==='quoteDate'){
+            jsonData.quote.date=this.textContent;
+        } else if(this.id==='projectNumber'){
+            jsonData.quote.projectNumber=this.textContent;
+        }
+        saveToLocal();
+        return;
+    }
+    if(f==='term'){
+        jsonData.terms[this.dataset.index]=val;
+        saveToLocal();
+        return;
+    }
+    // items
+    const containerId=this.dataset.item;
+    const idx=this.dataset.index;
+    const sIdx=this.dataset.includedIndex;
+    const arr=(containerId==='itemsList')?jsonData.items:jsonData.optionalItems;
+    if(!arr[idx])return;
+    if(f==='itemDescription'){
+        arr[idx].itemDescription=val.replace(/<br>/g,'\n');
+    } else if(f==='subItemDescription'){
+        let sub=arr[idx].subItems||arr[idx].optionalSubItems||[];
+        if(sub[sIdx]) sub[sIdx].subItemDescription=val.replace(/<br>/g,'\n');
+    } else if(f==='name'){
+        arr[idx].name=val;
+    } else if(f==='subItemName'){
+        let sub=arr[idx].subItems||arr[idx].optionalSubItems||[];
+        if(sub[sIdx]) sub[sIdx].subItemName=val;
+    } else if(f==='targetPrice' || f==='subItemTargetPrice'){
+        const n=parseFloat(val.replace(/\s/g,'').replace(',','.'));
+        const mul=jsonData.quote.currencyMultiplicator||1;
+        if(!isNaN(n)){
+            if(f==='subItemTargetPrice'){
+                let sub=arr[idx].subItems||arr[idx].optionalSubItems||[];
+                const s=sub[sIdx];
+                if(s){
+                    const q=s.subItemQuantity||0;
+                    s.subItemTargetPrice=n;
+                    s.subItemOriginalPrice=(q>0)?(n/(mul*q)):0;
+                }
+            } else {
+                const it=arr[idx];
+                const q=it.quantity||0;
+                it.targetPrice=n;
+                it.originalPrice=(q>0)?(n/(mul*q)):0;
+            }
+        }
+    } else if(f==='itemNumber' || f==='subItemNumber'){
+        if(f==='itemNumber'){
+            arr[idx].itemNumber=val;
+        } else {
+            let sub=arr[idx].subItems||arr[idx].optionalSubItems||[];
+            if(sub[sIdx]) sub[sIdx].subItemNumber=val;
+        }
+        // Re-run numbering after short delay
+        setTimeout(()=>{
+            postSortRenumber();
+            reRenderLists();
+        },300);
+    }
+    saveToLocal();
+    updatePrices();
+    calculateTotalPrice();
+}
+//---------------------------------
+// PDF + JSON
+//---------------------------------
+async function generatePDF(){
+    const ele=document.getElementById('quoteContent');
+    const opt={
+        margin:[10,10,10,10],
+        filename:`offert-${jsonData.quote.quoteNumber}.pdf`,
+        image:{type:'jpeg',quality:0.98},
+        html2canvas:{
+            scale:2,
+            useCORS:true,
+            allowTaint:true,
+            scrollX:-window.scrollX,
+            scrollY:-window.scrollY,
+            windowWidth:document.documentElement.offsetWidth,
+            windowHeight:document.documentElement.offsetHeight
+        },
+        jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+    };
+    try {
+        await html2pdf().from(ele).set(opt).save();
+        return true;
+    } catch(e){
+        console.error(e);
+        return false;
+    }
+}
+document.getElementById('saveJson').addEventListener('click',()=>{
+    const dataStr="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(jsonData,null,2));
+    const dl=document.createElement('a');
+    dl.setAttribute('href',dataStr);
+    dl.setAttribute('download','working.json');
+    document.body.appendChild(dl);
+    dl.click();
+    dl.remove();
+});
+//---------------------------------
+// Unwanted toggles
+//---------------------------------
+document.getElementById('makeTransparent').addEventListener('click',()=>{
+    storeOriginalStates();
+    document.getElementById('statusMessage').textContent='Gör oönskade element transparenta...';
+    document.querySelectorAll('.unwanted').forEach(el=>{
+        el.style.opacity='0';
+    });
+});
+document.getElementById('setDisplayNone').addEventListener('click',()=>{
+    storeOriginalStates();
+    document.getElementById('statusMessage').textContent='Döljer oönskade element...';
+    document.querySelectorAll('.unwanted').forEach(el=>{
+        el.style.display='none';
+    });
+});
+document.getElementById('removeElements').addEventListener('click',()=>{
+    storeOriginalStates();
+    document.getElementById('statusMessage').textContent='Tar bort oönskade element...';
+    document.querySelectorAll('.unwanted').forEach(el=>{
+        el.parentNode.removeChild(el);
+    });
+});
+document.getElementById('resetUnwanted').addEventListener('click',()=>{
+    document.getElementById('statusMessage').textContent='Återställer oönskade element...';
+    const unw=document.querySelectorAll('.unwanted');
+    unw.forEach(el=>{
+        if(originalStyles[el.id]){
+            el.setAttribute('style',originalStyles[el.id]);
+        } else {
+            el.removeAttribute('style');
+        }
+        if(originalElements[el.id]){
+            el.parentNode.replaceChild(originalElements[el.id],el);
+        }
+    });
+    document.getElementById('statusMessage').textContent='Oönskade element har återställts.';
+});
+function storeOriginalStates(){
+    const unw=document.querySelectorAll('.unwanted');
+    unw.forEach(el=>{
+        if(!el.id)return;
+        originalStyles[el.id]=el.getAttribute('style')||'';
+        originalElements[el.id]=el.cloneNode(true);
+    });
+}
+function saveToLocal(){
+    localStorage.setItem('quoteData', JSON.stringify(jsonData));
+}
+window.onload=()=>{
+    loadQuoteData(jsonData);
+};
+</script>
+</body>
+</html>
